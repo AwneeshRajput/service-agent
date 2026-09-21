@@ -1,0 +1,17 @@
+# Web framework
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pydantic-settings==2.15.0
+
+# Claude API
+anthropic==1.7.0
+
+# Postgres + pgvector
+psycopg[binary]==3.3.6
+pgvector==0.5.0
+sqlalchemy==2.0.54
+
+# Tests
+httpx==0.28.1
+pytest==9.1.1
+pytest-asyncio==1.4.0
