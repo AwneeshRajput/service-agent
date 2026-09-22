@@ -1,21 +1,18 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from sqlalchemy import create_engine, text
 
-from app.config import get_settings
-
-settings = get_settings()
-engine = create_engine(settings.database_url, pool_pre_ping=True)
-
-app = FastAPI(title="service-agent", version="0.1.0")
+from app.api import health
+from app.db import engine
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        database = "ok"
-    except Exception:
-        database = "unavailable"
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    engine.dispose()
 
-    return {"status": "ok", "env": settings.app_env, "database": database}
+
+app = FastAPI(title="service-agent", version="0.1.0", lifespan=lifespan)
+
+app.include_router(health.router)
