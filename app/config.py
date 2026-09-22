@@ -15,8 +15,10 @@ class Settings(BaseSettings):
     postgres_host: str = "localhost"
     postgres_port: int = 5432
 
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-opus-5"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.5"
+    openai_fast_model: str = "gpt-5.4-mini"
+    openai_embedding_model: str = "text-embedding-3-small"
 
     app_env: str = "development"
     log_level: str = "INFO"

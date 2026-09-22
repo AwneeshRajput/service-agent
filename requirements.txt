@@ -3,8 +3,8 @@ fastapi==0.141.1
 uvicorn[standard]==0.53.0
 pydantic-settings==2.15.0
 
-# Claude API
-anthropic==1.7.0
+# OpenAI API
+openai==3.17.0
 
 # Postgres + pgvector
 psycopg[binary]==3.3.6
