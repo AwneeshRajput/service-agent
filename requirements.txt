@@ -2,6 +2,8 @@
 fastapi==0.141.1
 uvicorn[standard]==0.53.0
 pydantic-settings==2.15.0
+langgraph==1.2.12
+langfuse==4.15.4
 
 # OpenAI API
 openai==3.17.0
@@ -15,3 +17,4 @@ sqlalchemy==2.0.54
 httpx==0.28.1
 pytest==9.1.1
 pytest-asyncio==1.4.0
+

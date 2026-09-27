@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,6 +15,20 @@ class Settings(BaseSettings):
     postgres_db: str
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+    llm_provider: Literal["ollama", "openai", "anthropic"] = "openai"
+    embedding_provider: Literal["ollama", "openai"] = "ollama"
+
+    ollama_base_url: str = "http://localhost:11434/v1"
+    ollama_model: str = "llama3.2"
+    ollama_embedding_model: str = "nomic-embed-text"
+
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-opus-5"
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+
+
 
     openai_api_key: str = ""
     openai_model: str = "gpt-5.5"

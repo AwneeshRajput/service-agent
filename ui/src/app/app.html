@@ -1,0 +1,182 @@
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">AutoServe <span>service desk</span></div>
+    <div class="session">
+      Session <code>{{ sessionId() }}</code>
+      <button type="button" class="ghost" (click)="newConversation()">New conversation</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="chat">
+      <div class="scroller" #scroller>
+        @if (messages().length === 0) {
+          <div class="empty">
+            <h2>How can we help with your car?</h2>
+            <p>Describe a problem, ask about recalls or prices, or book a slot. Under every answer you can open the agent steps to see what happened behind the scenes.</p>
+            <div class="chips">
+              @for (suggestion of suggestions; track suggestion) {
+                <button type="button" class="chip" [disabled]="!canSend()" (click)="sendText(suggestion)">{{ suggestion }}</button>
+              }
+            </div>
+          </div>
+        }
+
+        @for (message of messages(); track $index; let last = $last) {
+          <div class="row" [class.user]="message.role === 'user'">
+            <div class="bubble" [class.error]="message.error">
+              @if (message.intent) {
+                <span class="intent">{{ message.intent }}</span>
+              }
+              <div class="text">{{ message.text }}</div>
+              @if (message.steps; as steps) {
+                <details class="steps" [open]="last">
+                  <summary>How this was answered &middot; {{ message.took }}</summary>
+                  <div class="trace-head">
+                    <div><span class="k">Endpoint</span> <code>{{ message.endpoint }}</code></div>
+                    @if (message.agents?.length) {
+                      <div class="agents">
+                        <span class="k">Agents</span>
+                        @for (agent of message.agents; track $index; let lastAgent = $last) {
+                          <span class="agent">{{ agent }}</span>
+                          @if (!lastAgent) {
+                            <span class="arrow">&rarr;</span>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                  <ol>
+                    @for (step of steps; track $index) {
+                      <li>
+                        <span class="tag" [class.tool]="step.kind === 'tool'">{{ step.kind === 'tool' ? 'tool' : 'agent' }}</span>
+                        <div class="step-body">
+                          <div><strong>{{ step.label || step.name }}</strong> <span class="detail">{{ step.detail }}</span></div>
+                          @if (step.uses) {
+                            <div class="uses">{{ step.uses }}</div>
+                          }
+                        </div>
+                      </li>
+                    }
+                  </ol>
+                </details>
+              }
+            </div>
+          </div>
+        }
+
+        @if (busy()) {
+          <div class="row">
+            <div class="bubble typing">
+              <div>The agent is working&hellip;</div>
+              @if (liveSteps().length > 0) {
+                <ul class="live">
+                  @for (label of liveSteps(); track $index) {
+                    <li>{{ label }}</li>
+                  }
+                </ul>
+              }
+            </div>
+          </div>
+        }
+
+        @if (pending(); as booking) {
+          <div class="approval">
+            <h3>Booking waiting for your approval</h3>
+            <dl>
+              <dt>Service</dt>
+              <dd>{{ booking.service_name }} ({{ booking.service_code }})</dd>
+              <dt>Branch</dt>
+              <dd>{{ booking.branch_name }}</dd>
+              <dt>When</dt>
+              <dd>{{ booking.start_at | date: 'EEEE d MMMM y, HH:mm' }}</dd>
+              <dt>Price</dt>
+              <dd>{{ booking.price | currency }}</dd>
+              <dt>Slot</dt>
+              <dd>#{{ booking.slot_id }}</dd>
+            </dl>
+            <div class="actions">
+              <button type="button" class="primary" [disabled]="busy()" (click)="decide(true)">Approve booking</button>
+              <button type="button" [disabled]="busy()" (click)="decide(false)">Reject</button>
+            </div>
+            <p class="note">These buttons call <code>POST /v1/chat/approve</code>, which resumes the paused graph.</p>
+          </div>
+        }
+      </div>
+
+      <form class="composer" (ngSubmit)="send()">
+        <input
+          name="draft"
+          autocomplete="off"
+          maxlength="1000"
+          [(ngModel)]="draft"
+          [disabled]="!canSend()"
+          [placeholder]="pending() ? 'Approve or reject the booking above first' : 'Describe your car problem, or ask about recalls, prices or bookings'"
+        />
+        <button type="submit" class="primary" [disabled]="!canSend() || !draft().trim()">Send</button>
+      </form>
+    </section>
+
+    <aside class="side">
+      <h3>Customer</h3>
+      <label>
+        Customer id
+        <input
+          type="number"
+          min="1"
+          [ngModel]="customerId()"
+          (ngModelChange)="customerId.set($event ?? 1)"
+          [disabled]="messages().length > 0"
+        />
+      </label>
+
+      <h3>Free slots <code class="ep">GET /v1/slots/free</code></h3>
+      <div class="filters">
+        <label>
+          Date
+          <input type="date" [ngModel]="slotDay()" (ngModelChange)="setSlotDay($event)" />
+        </label>
+        <label>
+          Branch id (0 = all)
+          <input type="number" min="0" max="20" [ngModel]="slotBranch()" (ngModelChange)="setSlotBranch($event)" />
+        </label>
+      </div>
+
+      @if (slotsError()) {
+        <p class="err">{{ slotsError() }}</p>
+      } @else if (slots().length === 0) {
+        <p class="muted">No free slots for that day.</p>
+      } @else {
+        <p class="muted">
+          {{ slots().length }} free slot(s)@if (pending()) {, highlighted row = the slot the agent proposed}
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Bay</th>
+                <th>Slot</th>
+                @if (!slotBranch()) {
+                  <th>Branch</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (slot of slots(); track slot.slot_id) {
+                <tr [class.proposed]="slot.slot_id === pending()?.slot_id">
+                  <td>{{ slot.start_at | date: 'HH:mm' }}</td>
+                  <td>{{ slot.bay }}</td>
+                  <td>{{ slot.slot_id }}</td>
+                  @if (!slotBranch()) {
+                    <td>{{ slot.branch_name }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </aside>
+  </main>
+</div>
