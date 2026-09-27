@@ -1,5 +1,6 @@
 # --- Stage 1: build the Angular UI ---
-FROM node:20-slim AS ui-build
+# Angular CLI 22.x requires Node ^22.22.3 || ^24.15.0 || >=26.0.0 — node:20 fails the build.
+FROM node:22-slim AS ui-build
 WORKDIR /ui
 COPY ui/package*.json ./
 RUN npm ci
