@@ -162,13 +162,26 @@ def graph_input_for(request: ChatRequest) -> dict:
     }
 
 
+def run_config(session_id: str, run_name: str, customer_id: int | None = None) -> dict:
+    # session_id in metadata makes LangSmith group every turn of a chat into one thread.
+    metadata = {"session_id": session_id, "app_env": get_settings().app_env}
+    if customer_id is not None:
+        metadata["customer_id"] = customer_id
+    return {
+        "configurable": {"thread_id": session_id},
+        "run_name": run_name,
+        "metadata": metadata,
+        "tags": ["service-agent"],
+    }
+
+
 def ndjson(payload: dict) -> str:
     return json.dumps(payload) + "\n"
 
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
-    config = {"configurable": {"thread_id": request.session_id}}
+    config = run_config(request.session_id, "chat", request.customer_id)
 
     if await get_pending_approval(config):
         raise HTTPException(status.HTTP_409_CONFLICT, "a booking is waiting for approval: call /v1/chat/approve first")
@@ -179,7 +192,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
 @router.post("/chat/stream")
 async def chat_stream(request: ChatRequest) -> StreamingResponse:
-    config = {"configurable": {"thread_id": request.session_id}}
+    config = run_config(request.session_id, "chat", request.customer_id)
 
     if await get_pending_approval(config):
         raise HTTPException(status.HTTP_409_CONFLICT, "a booking is waiting for approval: call /v1/chat/approve first")
@@ -202,7 +215,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
 
 @router.post("/chat/approve", response_model=ChatResponse)
 async def approve(request: ApproveRequest) -> ChatResponse:
-    config = {"configurable": {"thread_id": request.session_id}}
+    config = run_config(request.session_id, "chat_approve")
 
     if not await get_pending_approval(config):
         raise HTTPException(status.HTTP_409_CONFLICT, "nothing is waiting for approval in this session")

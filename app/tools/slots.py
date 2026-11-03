@@ -1,10 +1,11 @@
 from datetime import date, datetime, timedelta
 from math import ceil
 
-from langfuse import observe
-from langfuse import observe
+from langsmith import traceable
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from app.tracing import drop_db
 
 class NotFoundError(Exception):
     pass
@@ -12,7 +13,7 @@ class NotFoundError(Exception):
 class BookingError(Exception):
     pass
 
-@observe(name="get_free_slots")
+@traceable(name="get_free_slots", run_type="tool", process_inputs=drop_db)
 def get_free_slots(db: Session, day: date, branch_id: int | None = None) -> list[dict]:
     rows = db.execute(
         text("""
@@ -31,7 +32,7 @@ def get_free_slots(db: Session, day: date, branch_id: int | None = None) -> list
 
 
 
-@observe(name="book_slot")
+@traceable(name="book_slot", run_type="tool", process_inputs=drop_db)
 def book_slot(db: Session, slot_id: int, customer_id: int, service_id: int) -> dict:
     first = db.execute(
         text("SELECT slot_id, branch_id, bay, start_at, status FROM slots WHERE slot_id = :id FOR UPDATE"),

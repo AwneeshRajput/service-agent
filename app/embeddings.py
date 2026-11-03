@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Protocol
 
-from langfuse.openai import OpenAI
+from langsmith.wrappers import wrap_openai
+from openai import OpenAI
 
 from app.config import get_settings
 
@@ -52,4 +53,4 @@ def get_embedder() -> Embedder:
         client = OpenAI(api_key=settings.openai_api_key)
         model = settings.openai_embedding_model
 
-    return OpenAICompatibleEmbedder(client, model, dimensions_of(model))
+    return OpenAICompatibleEmbedder(wrap_openai(client), model, dimensions_of(model))

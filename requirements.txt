@@ -3,7 +3,7 @@ fastapi==0.141.1
 uvicorn[standard]==0.53.0
 pydantic-settings==2.15.0
 langgraph==1.2.12
-langfuse==4.15.4
+langsmith==0.14.0
 
 # OpenAI API
 openai==3.17.0

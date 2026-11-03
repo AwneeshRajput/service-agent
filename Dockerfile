@@ -17,8 +17,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY --from=ui-build /ui/dist/ui/browser ./ui/dist/ui/browser
 
+ENV PYTHONUNBUFFERED=1 PORT=8080
+RUN useradd -m appuser
+USER appuser
 # Hugging Face Spaces (Docker SDK) expects the app on port 7860.
-ENV PORT=7860
-EXPOSE 7860
+# ENV PORT=7860
+# EXPOSE 7860
 
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]

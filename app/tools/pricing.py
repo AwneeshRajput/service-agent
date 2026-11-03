@@ -1,13 +1,14 @@
 from datetime import date
 
-from langfuse import observe
+from langsmith import traceable
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.tools.slots import NotFoundError
+from app.tracing import drop_db
 
 
-@observe(name="get_price")
+@traceable(name="get_price", run_type="tool", process_inputs=drop_db)
 def get_price(
     db: Session,
     service_code: str,

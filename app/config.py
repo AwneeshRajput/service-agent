@@ -15,8 +15,11 @@ class Settings(BaseSettings):
     postgres_db: str
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+    # "require" for hosted Postgres like Neon; "prefer" also works with the local Docker DB (no SSL).
+    postgres_sslmode: Literal["disable", "prefer", "require", "verify-ca", "verify-full"] = "prefer"
     llm_provider: Literal["ollama", "openai", "anthropic"] = "openai"
-    embedding_provider: Literal["ollama", "openai"] = "ollama"
+    # Must match how manual_chunks was ingested (python -m app.rag.ingest); openai = 1536 dims.
+    embedding_provider: Literal["ollama", "openai"] = "openai"
 
     ollama_base_url: str = "http://localhost:11434/v1"
     ollama_model: str = "llama3.2"
@@ -24,10 +27,12 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-opus-5"
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
-    langfuse_base_url: str = "https://cloud.langfuse.com"
 
+    # LangSmith tracing: on only when LANGSMITH_TRACING=true and an API key is set.
+    langsmith_tracing: bool = False
+    langsmith_api_key: str = ""
+    langsmith_project: str = "service-agent"
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
 
 
     openai_api_key: str = ""
@@ -43,6 +48,7 @@ class Settings(BaseSettings):
         return (
             f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+            f"?sslmode={self.postgres_sslmode}"
         )
 
 

@@ -1,9 +1,18 @@
+from app.config import get_settings
 from app.graph import tools
 from app.graph.state import GraphState, reply
 from app.llm import acomplete_structured
 from app.schemas.agents import DiagnosisResult
 
-MIN_SCORE = 0.55
+# Below this similarity the manuals are treated as not covering the question.
+# Each embedding model has its own score range, so the cut-off differs:
+#   openai text-embedding-3-small: relevant 0.44-0.70, off-topic 0.07-0.18
+#   ollama nomic-embed-text:       relevant 0.60-0.73, off-topic 0.39-0.48
+MIN_SCORE_BY_PROVIDER = {"openai": 0.35, "ollama": 0.55}
+
+
+def min_score() -> float:
+    return MIN_SCORE_BY_PROVIDER[get_settings().embedding_provider]
 
 NOT_SURE = (
     "I'm not sure about that from our service manuals. "
@@ -57,7 +66,7 @@ async def diagnosis_node(state: GraphState) -> dict:
         question = state["messages"][-1]["content"]
         chunks = await tools.search_manuals.ainvoke({"question": question, "k": 3})
 
-        if not chunks or chunks[0]["score"] < MIN_SCORE:
+        if not chunks or chunks[0]["score"] < min_score():
             parts.append(NOT_SURE)
         else:
             context = "\n\n".join(f"[{c['doc_id']} / {c['heading']}]\n{c['content']}" for c in chunks)

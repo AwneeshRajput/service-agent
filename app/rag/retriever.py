@@ -1,10 +1,11 @@
-from langfuse import observe
+from langsmith import traceable
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.embeddings import get_embedder
+from app.tracing import drop_db
 
-@observe(name="search_manuals")
+@traceable(name="search_manuals", run_type="retriever", process_inputs=drop_db)
 def search(db: Session, question: str, k: int = 3) -> list[dict]:
     query_vector = str(get_embedder().embed([question])[0])
     rows = db.execute(

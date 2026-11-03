@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Protocol, TypeVar
 
-from langfuse.openai import OpenAI
+from langsmith import traceable
+from langsmith.wrappers import wrap_anthropic, wrap_openai
+from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 
 from app.config import get_settings
@@ -55,13 +57,15 @@ def get_llm() -> LLM:
     settings = get_settings()
 
     if settings.llm_provider == "ollama":
-        client = OpenAI(base_url=settings.ollama_base_url, api_key="ollama", timeout=60.0, max_retries=2)
+        client = wrap_openai(
+            OpenAI(base_url=settings.ollama_base_url, api_key="ollama", timeout=60.0, max_retries=2)
+        )
         return OpenAICompatibleLLM(client, settings.ollama_model)
 
     if settings.llm_provider == "openai":
         if not settings.openai_api_key:
             raise RuntimeError("LLM_PROVIDER=openai but OPENAI_API_KEY is empty")
-        client = OpenAI(api_key=settings.openai_api_key, timeout=30.0, max_retries=2)
+        client = wrap_openai(OpenAI(api_key=settings.openai_api_key, timeout=30.0, max_retries=2))
         return OpenAICompatibleLLM(client, settings.openai_model)
 
     try:
@@ -70,7 +74,7 @@ def get_llm() -> LLM:
         raise RuntimeError("LLM_PROVIDER=anthropic needs: pip install anthropic") from e
     if not settings.anthropic_api_key:
         raise RuntimeError("LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is empty")
-    client = Anthropic(api_key=settings.anthropic_api_key, timeout=30.0, max_retries=2)
+    client = wrap_anthropic(Anthropic(api_key=settings.anthropic_api_key, timeout=30.0, max_retries=2))
     return AnthropicLLM(client, settings.anthropic_model)
 
 class LLMOutputError(Exception):
@@ -82,6 +86,7 @@ def _json_part(raw: str) -> str:
     return raw[start : end + 1] if 0 <= start < end else raw
 
 
+@traceable(name="complete_structured", process_inputs=lambda i: {**i, "schema": i["schema"].__name__})
 def complete_structured(system: str, user: str, schema: type[T], retries: int = 2) -> T:
     llm = get_llm()
     system = (

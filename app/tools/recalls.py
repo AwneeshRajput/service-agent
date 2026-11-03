@@ -1,5 +1,5 @@
 import httpx
-from langfuse import observe
+from langsmith import traceable
 
 NHTSA_URL = "https://api.nhtsa.gov/recalls/recallsByVehicle"
 MAX_RESULTS = 5
@@ -16,7 +16,7 @@ def _trim(recall: dict) -> dict:
         "park_it": recall.get("parkIt", False),
     }
 
-@observe(name="check_recalls")
+@traceable(name="check_recalls", run_type="tool")
 async def check_recalls(make: str, model: str, year: int) -> dict:
     result = {"make": make, "model": model, "year": year, "total": 0, "recalls": [], "error": None}
     params = {"make": make.strip(), "model": model.strip(), "modelYear": year}
