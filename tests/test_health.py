@@ -1,3 +1,4 @@
+import pytest
 from sqlalchemy.exc import OperationalError
 
 from app.db import get_db
@@ -9,6 +10,7 @@ class BrokenSession:
         raise OperationalError("SELECT 1", {}, Exception("connection refused"))
 
 
+@pytest.mark.integration
 def test_health_reports_ok(client):
     response = client.get("/health")
 

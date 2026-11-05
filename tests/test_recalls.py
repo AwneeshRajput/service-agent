@@ -4,6 +4,7 @@ import pytest
 from app.tools.recalls import MAX_RESULTS, check_recalls
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_real_car_returns_recalls():
     result = await check_recalls("honda", "civic", 2019)

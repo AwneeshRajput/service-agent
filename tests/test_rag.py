@@ -3,6 +3,9 @@ import pytest
 from app.db import SessionLocal
 from app.rag.retriever import search
 
+# Every test here hits Postgres and the embedding provider.
+pytestmark = pytest.mark.integration
+
 CASES = [
     ("my brakes are grinding", "brakes"),
     ("car won't start, it just clicks", "battery-12v"),
